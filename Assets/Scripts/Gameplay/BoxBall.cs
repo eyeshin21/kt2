@@ -54,6 +54,12 @@ public class BoxBall : MonoBehaviour
     public void Recycle()
     {
         transform.DOKill();
+
+        follower.follow = false;
+        follower.spline = null;
+        follower.enabled = false;
+        follower.RebuildImmediate();
+
         gameObject.Recycle();
     }
 }

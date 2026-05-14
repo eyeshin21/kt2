@@ -13,9 +13,12 @@ public class Ball : MonoBehaviour
     public SplineFollower splineFollower;
     public Ball ballForward;
 
+    float cacheSpeed;
+
     private void Start()
     {
         tracer = GetComponent<SplineTracer>();
+        cacheSpeed = splineFollower.followSpeed;
     }
 
     public void Init(ColorEnum color)
@@ -104,7 +107,7 @@ public class Ball : MonoBehaviour
         double startpercent = tracer.ClipPercent(connections[1].spline.GetPointPercent(connections[1].pointIndex));
         tracer.SetPercent(startpercent);
 
-        DOVirtual.Float(5f, 9f, 1f, (result) =>
+        DOVirtual.Float(cacheSpeed, cacheSpeed + 5f, 1f, (result) =>
         {
             splineFollower.followSpeed = result;
         }).SetEase(Ease.InQuad);
@@ -131,6 +134,22 @@ public class Ball : MonoBehaviour
 
     public void Recycle()
     {
+        transform.DOKill();
+
+        targetHole = null;
+        fillIndex = -1;
+
+        splineFollower.follow = false;
+        splineFollower.wrapMode = SplineFollower.Wrap.Loop;
+        splineFollower.followSpeed = cacheSpeed;
+        splineFollower.spline = null;
+        splineFollower.enabled = false;
+        splineFollower.RebuildImmediate();
+
+        forceStop = false;
+
+        ballForward = null;
+
         gameObject.Recycle();
     }
 }

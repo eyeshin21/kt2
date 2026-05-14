@@ -205,7 +205,7 @@ public class UIBox : UI, IPointerDownHandler, IPointerUpHandler
         }
 
         int targetAmountHole = 0;
-        int totalHole = LevelDesign.Instance.levelData.holesDataDefault.Count;
+        int totalHole = LevelDesign.Instance.levelData.holesData.Count;
         switch (totalHole)
         {
             case 1:
@@ -219,47 +219,24 @@ public class UIBox : UI, IPointerDownHandler, IPointerUpHandler
                 break;
         }
 
-        foreach (var holeDataDefault in LevelDesign.Instance.levelData.holesDataDefault)
+        foreach (var holeData in LevelDesign.Instance.levelData.holesData)
         {
-            if (!allColors.Contains(holeDataDefault.firstLayerHole.color))
+            foreach (var holeLayerData in holeData.holeLayersData)
             {
-                allColors.Add(holeDataDefault.firstLayerHole.color);
-            }
-            if (!allColors.Contains(holeDataDefault.secondLayerHole.color))
-            {
-                allColors.Add(holeDataDefault.secondLayerHole.color);
-            }
-            if (!allColors.Contains(holeDataDefault.thirdLayerHole.color))
-            {
-                allColors.Add(holeDataDefault.thirdLayerHole.color);
-            }
+                if (holeLayerData.color != ColorEnum.None)
+                {
+                    if (!allColors.Contains(holeLayerData.color))
+                    {
+                        allColors.Add(holeLayerData.color);
+                    }
 
-            if (!holeDicts.ContainsKey(holeDataDefault.firstLayerHole.color))
-            {
-                holeDicts.Add(holeDataDefault.firstLayerHole.color, 0);
+                    if (!holeDicts.ContainsKey(holeLayerData.color))
+                    {
+                        holeDicts.Add(holeLayerData.color, 0);
+                    }
+                    holeDicts[holeLayerData.color] += targetAmountHole;
+                }
             }
-            holeDicts[holeDataDefault.firstLayerHole.color] += targetAmountHole;
-
-            if (!holeDicts.ContainsKey(holeDataDefault.secondLayerHole.color))
-            {
-                holeDicts.Add(holeDataDefault.secondLayerHole.color, 0);
-            }
-            holeDicts[holeDataDefault.secondLayerHole.color] += targetAmountHole;
-
-            if (!holeDicts.ContainsKey(holeDataDefault.thirdLayerHole.color))
-            {
-                holeDicts.Add(holeDataDefault.thirdLayerHole.color, 0);
-            }
-            holeDicts[holeDataDefault.thirdLayerHole.color] += targetAmountHole;
-        }
-
-        foreach (var holeData in LevelDesign.Instance.levelData.queueHoles)
-        {
-            if (!holeDicts.ContainsKey(holeData.color))
-            {
-                holeDicts.Add(holeData.color, 0);
-            }
-            holeDicts[holeData.color] += targetAmountHole;
         }
 
         string txt = "";

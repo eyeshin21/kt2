@@ -1,9 +1,7 @@
 using DG.Tweening;
-using DG.Tweening.Core.Easing;
 using Dreamteck.Splines;
 using System.Collections;
 using System.Collections.Generic;
-using TigerForge;
 using TMPro;
 using UnityEngine;
 
@@ -17,7 +15,7 @@ public class FunnelManager : Singleton<FunnelManager>
     public Transform ballParent;
     public int maxCapacity;
     public TextMeshPro txtCapacity;
-    public float moveTime = 0.2f;
+    public float moveTime = 0.3f;
     public float distanceBetweenBall = 1f;
 
     public GameObject ballPrefab;
@@ -45,9 +43,12 @@ public class FunnelManager : Singleton<FunnelManager>
         AddTrigger(OnBallCrossStartLine, startPos.GetPercent(), name: "OnBallCrossStartLine");
     }
 
-    public bool IsFull()
+    public bool IsFull(out int totalFreeSlot)
     {
-        return balls.Count == maxCapacity;
+        int totalBalls = balls.Count + preBalls.Count + queueBalls.Count;
+
+        totalFreeSlot = maxCapacity - totalBalls;
+        return totalBalls >= maxCapacity;
     }
 
     public bool PreCheckFullConveyor()
@@ -130,9 +131,9 @@ public class FunnelManager : Singleton<FunnelManager>
                     balls.Add(ball);
 
                     Invoke(nameof(ResetBallOrder), 0.01f);
+                    GameplayController.Instance.CheckLose();
                 });
 
-                //GameManager.Instance.currentLevel.CheckLose();
             }
             else
             {
@@ -171,6 +172,31 @@ public class FunnelManager : Singleton<FunnelManager>
     {
         balls.Remove(ball);
         ResetBallOrder();
+    }
+
+    public bool IsAnyBallMatchAnyHole()
+    {
+        List<Hole> holes = HoleManager.Instance.holes;
+        for (int i = 0; i < holes.Count; i++)
+        {
+            if (holes[i].IsFull())
+            {
+                return true;
+            }
+        }
+
+        for (int i = 0; i < balls.Count; i++)
+        {
+            for (int j = 0; j < holes.Count; j++)
+            {
+                if (!holes[j].IsFull() && holes[j].holeLayers[0].color == balls[i].color)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public bool IsAnyBallCrossingTheStartLine(out Ball ball)
@@ -278,6 +304,8 @@ public class FunnelManager : Singleton<FunnelManager>
             StopCoroutine(coroutineAddBall);
             coroutineAddBall = null;
         }
+
+        isWaitingForDoneAddBall = false;
 
         for (int i = 0; i < balls.Count; i++)
         {

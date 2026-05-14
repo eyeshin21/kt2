@@ -98,6 +98,12 @@ public class UIGround : UI, IPointerDownHandler, IPointerUpHandler
         LevelDesign.Instance.levelData.gridHeight = yInput;
         LevelDesign.Instance.levelData.gridSlotsData.Clear();
 
+        LevelDesign.Instance.levelData.boxesData.Clear();
+        LevelDesign.Instance.levelData.tunnelsData.Clear();
+        LevelDesign.Instance.levelData.pinsData.Clear();
+        LevelDesign.Instance.levelData.clothsData.Clear();
+        LevelDesign.Instance.levelData.lockChainsData.Clear();
+
         for (int y = 0; y < yInput; y++)
         {
             for (int x = 0; x < xInput; x++)

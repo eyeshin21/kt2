@@ -35,8 +35,8 @@ public class HapticFeedbackController : MonoBehaviour
         if (_instance._hapticsPaused)
             return;
 
-        //if (!UserConfig.Instance.Vibrate)
-        //    return;
+        if (!UserConfig.Instance.Vibrate)
+            return;
 
         if (_instance._hapticTimer > 0 && !force)
             return;

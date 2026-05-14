@@ -10,17 +10,17 @@ public class UIHole : UI
     [Header("UI")]
     [SerializeField] TextMeshProUGUI txtTotalColors;
 
-    [Header("Hole Data Default")]
-    public ScrollRect scrollHoleDataDefault;
-    public GameObject holeDataDefaultUIPrefab;
-    public List<HoleDataDefaultUI> holesDataDefaultUI;
-    public Transform buttonAddHoleDataDefault;
+    [Header("Hole Data")]
+    public ScrollRect scrollHoleData;
+    public GameObject holeDataUIPrefab;
+    public List<HoleDataUI> holesDataUI = new List<HoleDataUI>();
+    public int indexHoleData = -1;
 
-    [Header("Queue Hole")]
-    public ScrollRect scrollQueueHole;
-    public GameObject queueHoleUIPrefab;
-    public List<QueueHoleUI> queueHolesUI;
-    public Transform buttonAddQueueHole;
+    [Header("Hole Layer Data")]
+    public ScrollRect scrollHoleLayerData;
+    public GameObject holeLayerDataUIPrefab;
+    public List<HoleLayerDataUI> holeLayersDataUI;
+    public Transform buttonAddHoleLayerData;
 
     [Header("Grid")]
     [SerializeField] ScrollRect scrollRect;
@@ -31,9 +31,6 @@ public class UIHole : UI
     public BoxTile[,] boxTileGrid;
 
     [Header("Hole Preview")]
-    public GameObject objQueueHole;
-    public GDHoleLayer queueHole;
-
     public GameObject objHoleFull;
     public GDHole holeFull;
 
@@ -48,52 +45,6 @@ public class UIHole : UI
         base.Show();
         Init();
         InitGrid();
-        UpdateHolePreview();
-    }
-
-    public void UpdateHolePreview()
-    {
-        objQueueHole.SetActive(false);
-        objHoleFull.SetActive(false);
-        objHoleHalf.SetActive(false);
-        objHoleQuarter.SetActive(false);
-
-        if (LevelDesign.Instance.levelData.queueHoles.Count > 0)
-        {
-            objQueueHole.SetActive(true);
-            queueHole.Init(LevelDesign.Instance.levelData.queueHoles[0]);
-        }
-
-        int totalHole = LevelDesign.Instance.levelData.holesDataDefault.Count;
-        switch (totalHole)
-        {
-            case 1:
-                {
-                    objHoleFull.SetActive(true);
-                    holeFull.Init(LevelDesign.Instance.levelData.holesDataDefault[0]);
-                }
-                break;
-            case 2:
-                {
-                    objHoleHalf.SetActive(true);
-                    for (int i = 0; i < totalHole; i++)
-                    {
-                        HoleDataDefault holeDataDefault = LevelDesign.Instance.levelData.holesDataDefault[i];
-                        holeHalf[i].Init(holeDataDefault);
-                    }
-                }
-                break;
-            case 4:
-                {
-                    objHoleQuarter.SetActive(true);
-                    for (int i = 0; i < totalHole; i++)
-                    {
-                        HoleDataDefault holeDataDefault = LevelDesign.Instance.levelData.holesDataDefault[i];
-                        holeQuarter[i].Init(holeDataDefault);
-                    }
-                }
-                break;
-        }
     }
 
     public void InitGrid()
@@ -156,42 +107,22 @@ public class UIHole : UI
     {
         RecycleAll();
 
-        if (LevelDesign.Instance.levelData.holesDataDefault.Count > 0)
+        indexHoleData = -1;
+
+        if (LevelDesign.Instance.levelData.holesData.Count > 0)
         {
             int index = 0;
-            foreach (var holeData in LevelDesign.Instance.levelData.holesDataDefault)
+            foreach (var holeData in LevelDesign.Instance.levelData.holesData)
             {
-                GameObject obj = holeDataDefaultUIPrefab.Spawn(scrollHoleDataDefault.content);
+                GameObject obj = holeDataUIPrefab.Spawn(scrollHoleData.content);
                 obj.transform.localScale = Vector3.one;
 
-                HoleDataDefaultUI holeDataUI = obj.GetComponent<HoleDataDefaultUI>();
+                HoleDataUI holeDataUI = obj.GetComponent<HoleDataUI>();
                 holeDataUI.Init(index);
-                holeDataUI.SetUp(holeData);
-                holesDataDefaultUI.Add(holeDataUI);
+                holesDataUI.Add(holeDataUI);
 
                 index++;
             }
-
-            buttonAddHoleDataDefault.SetAsLastSibling();
-        }
-
-        if (LevelDesign.Instance.levelData.queueHoles.Count > 0)
-        {
-            int index = 0;
-            foreach (var queueHole in LevelDesign.Instance.levelData.queueHoles)
-            {
-                GameObject obj = queueHoleUIPrefab.Spawn(scrollQueueHole.content);
-                obj.transform.localScale = Vector3.one;
-
-                QueueHoleUI colorQueueUI = obj.GetComponent<QueueHoleUI>();
-                colorQueueUI.Init(index);
-                colorQueueUI.SetUp(queueHole);
-                queueHolesUI.Add(colorQueueUI);
-
-                index++;
-            }
-
-            buttonAddQueueHole.SetAsLastSibling();
         }
 
         UpdateTotalColors();
@@ -200,93 +131,83 @@ public class UIHole : UI
     public void RecycleAll()
     {
         ClearHoleDataUI();
-        ClearQueueHoleUI();
+        ClearHoleLayerDataUI();
     }
 
     public void ClearHoleDataUI()
     {
-        foreach (var holeDataDefaultUI in holesDataDefaultUI)
+        foreach (var holeDataUI in holesDataUI)
         {
-            holeDataDefaultUI.gameObject.Recycle();
+            holeDataUI.gameObject.Recycle();
         }
-        holesDataDefaultUI.Clear();
+        holesDataUI.Clear();
     }
 
-    public void ClearQueueHoleUI()
+    public void ClearHoleLayerDataUI()
     {
-        foreach (var queueHole in queueHolesUI)
+        foreach (var holeLayerDataUI in holeLayersDataUI)
         {
-            queueHole.gameObject.Recycle();
+            holeLayerDataUI.gameObject.Recycle();
         }
-        queueHolesUI.Clear();
+        holeLayersDataUI.Clear();
     }
 
-    public void RemoveHoleDataDefault(int index)
+    public void SpawnHoleLayerData(int holeDataIndex)
     {
-        holesDataDefaultUI.RemoveAt(index);
+        ClearHoleLayerDataUI();
 
-        LevelDesign.Instance.levelData.holesDataDefault.RemoveAt(index);
+        indexHoleData = holeDataIndex;
 
-        for (int i = 0; i < holesDataDefaultUI.Count; i++)
+        int index = 0;
+        foreach (var holeLayerData in LevelDesign.Instance.levelData.holesData[indexHoleData].holeLayersData)
         {
-            holesDataDefaultUI[i].Init(i);
+            GameObject obj = holeLayerDataUIPrefab.Spawn(scrollHoleLayerData.content);
+            obj.transform.localScale = Vector3.one;
+
+            HoleLayerDataUI holeLayerDataUI = obj.GetComponent<HoleLayerDataUI>();
+            holeLayerDataUI.Init(index);
+            holeLayerDataUI.SetUp(holeLayerData);
+
+            holeLayersDataUI.Add(holeLayerDataUI);
+            index++;
+        }
+
+        buttonAddHoleLayerData.SetAsLastSibling();
+    }
+
+    public void RemoveHoleLayerDataUI(int index)
+    {
+        holeLayersDataUI.RemoveAt(index);
+
+        LevelDesign.Instance.levelData.holesData[indexHoleData].holeLayersData.RemoveAt(index);
+
+        for (int i = 0; i < holeLayersDataUI.Count; i++)
+        {
+            holeLayersDataUI[i].Init(i);
         }
 
         UpdateTotalColors();
     }
 
-    public void RemoveQueueHole(int index)
+    public void OnClickButtonAddHoleLayerData()
     {
-        queueHolesUI.RemoveAt(index);
+        if (indexHoleData == -1) return;
 
-        LevelDesign.Instance.levelData.queueHoles.RemoveAt(index);
+        int index = holeLayersDataUI.Count;
 
-        for (int i = 0; i < queueHolesUI.Count; i++)
-        {
-            queueHolesUI[i].Init(i);
-        }
-
-        UpdateTotalColors();
-    }
-
-    public void OnClickButtonAddHoleDataDefault()
-    {
-        int index = holesDataDefaultUI.Count;
-
-        GameObject obj = holeDataDefaultUIPrefab.Spawn(scrollHoleDataDefault.content);
+        GameObject obj = holeLayerDataUIPrefab.Spawn(scrollHoleLayerData.content);
         obj.transform.localScale = Vector3.one;
 
-        HoleDataDefaultUI holeDataDefaultUI = obj.GetComponent<HoleDataDefaultUI>();
-        holesDataDefaultUI.Add(holeDataDefaultUI);
+        HoleLayerDataUI holeLayerDataUI = obj.GetComponent<HoleLayerDataUI>();
+        holeLayersDataUI.Add(holeLayerDataUI);
 
-        HoleDataDefault holeDataDefault = new HoleDataDefault();
-        LevelDesign.Instance.levelData.holesDataDefault.Add(holeDataDefault);
+        HoleLayerData holeLayerData = new HoleLayerData();
+        LevelDesign.Instance.levelData.holesData[indexHoleData].holeLayersData.Add(holeLayerData);
 
-        holeDataDefaultUI.Init(index);
-        holeDataDefaultUI.SetUp(holeDataDefault);
+        holeLayerDataUI.Init(index);
+        holeLayerDataUI.SetUp(holeLayerData);
 
-        buttonAddHoleDataDefault.SetAsLastSibling();
-
-        UpdateTotalColors();
-    }
-
-    public void OnClickButtonAddQueueHole()
-    {
-        int index = queueHolesUI.Count;
-
-        GameObject obj = queueHoleUIPrefab.Spawn(scrollQueueHole.content);
-        obj.transform.localScale = Vector3.one;
-
-        QueueHoleUI queueHoleUI = obj.GetComponent<QueueHoleUI>();
-        queueHolesUI.Add(queueHoleUI);
-
-        HoleData holeData = new HoleData();
-        LevelDesign.Instance.levelData.queueHoles.Add(holeData);
-
-        queueHoleUI.Init(index);
-        queueHoleUI.SetUp(holeData);
-
-        buttonAddQueueHole.SetAsLastSibling();
+        buttonAddHoleLayerData.SetAsLastSibling();
 
         UpdateTotalColors();
     }
@@ -337,7 +258,7 @@ public class UIHole : UI
         }
 
         int targetAmountHole = 0;
-        int totalHole = LevelDesign.Instance.levelData.holesDataDefault.Count;
+        int totalHole = LevelDesign.Instance.levelData.holesData.Count;
         switch (totalHole)
         {
             case 1:
@@ -351,47 +272,24 @@ public class UIHole : UI
                 break;
         }
 
-        foreach (var holeDataDefault in LevelDesign.Instance.levelData.holesDataDefault)
+        foreach (var holeData in LevelDesign.Instance.levelData.holesData)
         {
-            if (!allColors.Contains(holeDataDefault.firstLayerHole.color))
+            foreach (var holeLayerData in holeData.holeLayersData)
             {
-                allColors.Add(holeDataDefault.firstLayerHole.color);
-            }
-            if (!allColors.Contains(holeDataDefault.secondLayerHole.color))
-            {
-                allColors.Add(holeDataDefault.secondLayerHole.color);
-            }
-            if (!allColors.Contains(holeDataDefault.thirdLayerHole.color))
-            {
-                allColors.Add(holeDataDefault.thirdLayerHole.color);
-            }
+                if (holeLayerData.color != ColorEnum.None)
+                {
+                    if (!allColors.Contains(holeLayerData.color))
+                    {
+                        allColors.Add(holeLayerData.color);
+                    }
 
-            if (!holeDicts.ContainsKey(holeDataDefault.firstLayerHole.color))
-            {
-                holeDicts.Add(holeDataDefault.firstLayerHole.color, 0);
+                    if (!holeDicts.ContainsKey(holeLayerData.color))
+                    {
+                        holeDicts.Add(holeLayerData.color, 0);
+                    }
+                    holeDicts[holeLayerData.color] += targetAmountHole;
+                }
             }
-            holeDicts[holeDataDefault.firstLayerHole.color] += targetAmountHole;
-
-            if (!holeDicts.ContainsKey(holeDataDefault.secondLayerHole.color))
-            {
-                holeDicts.Add(holeDataDefault.secondLayerHole.color, 0);
-            }
-            holeDicts[holeDataDefault.secondLayerHole.color] += targetAmountHole;
-
-            if (!holeDicts.ContainsKey(holeDataDefault.thirdLayerHole.color))
-            {
-                holeDicts.Add(holeDataDefault.thirdLayerHole.color, 0);
-            }
-            holeDicts[holeDataDefault.thirdLayerHole.color] += targetAmountHole;
-        }
-
-        foreach (var holeData in LevelDesign.Instance.levelData.queueHoles)
-        {
-            if (!holeDicts.ContainsKey(holeData.color))
-            {
-                holeDicts.Add(holeData.color, 0);
-            }
-            holeDicts[holeData.color] += targetAmountHole;
         }
 
         string txt = "";
@@ -430,6 +328,44 @@ public class UIHole : UI
         UpdateHolePreview();
     }
 
+    public void UpdateHolePreview()
+    {
+        objHoleFull.SetActive(false);
+        objHoleHalf.SetActive(false);
+        objHoleQuarter.SetActive(false);
+
+        int totalHole = LevelDesign.Instance.levelData.holesData.Count;
+        switch (totalHole)
+        {
+            case 1:
+                {
+                    objHoleFull.SetActive(true);
+                    holeFull.Init(LevelDesign.Instance.levelData.holesData[0]);
+                }
+                break;
+            case 2:
+                {
+                    objHoleHalf.SetActive(true);
+                    for (int i = 0; i < totalHole; i++)
+                    {
+                        HoleData holeData = LevelDesign.Instance.levelData.holesData[i];
+                        holeHalf[i].Init(holeData);
+                    }
+                }
+                break;
+            case 4:
+                {
+                    objHoleQuarter.SetActive(true);
+                    for (int i = 0; i < totalHole; i++)
+                    {
+                        HoleData holeData = LevelDesign.Instance.levelData.holesData[i];
+                        holeQuarter[i].Init(holeData);
+                    }
+                }
+                break;
+        }
+    }
+
     public void GenerateGrid(int gridSizeX, int gridSizeY)
     {
         gridLayoutGroup.constraintCount = gridSizeX;
@@ -450,6 +386,46 @@ public class UIHole : UI
                 boxTileGrid[x, y] = boxTile;
             }
         }
+    }
+
+    public void OnClickButtonCreateHoleData()
+    {
+        if (LevelDesign.Instance.levelData.holesData.Count >= 4) return;
+
+        int index = holesDataUI.Count;
+
+        GameObject obj = holeDataUIPrefab.Spawn(scrollHoleData.content);
+        obj.transform.localScale = Vector3.one;
+
+        HoleData holeData = new HoleData();
+        LevelDesign.Instance.levelData.holesData.Add(holeData);
+
+        HoleDataUI holeDataUI = obj.GetComponent<HoleDataUI>();
+        holeDataUI.Init(index);
+        holesDataUI.Add(holeDataUI);
+
+        UpdateTotalColors();
+    }
+
+    public void OnClickButtonRemoveHoleData()
+    {
+        if (indexHoleData == -1) return;
+
+        holesDataUI[indexHoleData].gameObject.Recycle();
+        holesDataUI.RemoveAt(indexHoleData);
+
+        for (int i = 0; i < holesDataUI.Count; i++)
+        {
+            holesDataUI[i].Init(i);
+        }
+
+        ClearHoleLayerDataUI();
+
+        LevelDesign.Instance.levelData.holesData.RemoveAt(indexHoleData);
+
+        indexHoleData = -1;
+
+        UpdateTotalColors();
     }
 
     public override void Hide()

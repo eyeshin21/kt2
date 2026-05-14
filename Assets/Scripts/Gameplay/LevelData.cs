@@ -15,23 +15,20 @@ public class LevelData
     public List<ClothData> clothsData = new List<ClothData>();
     public List<LockChainData> lockChainsData = new List<LockChainData>();
 
-    public List<HoleDataDefault> holesDataDefault = new List<HoleDataDefault>();
-    public List<HoleData> queueHoles = new List<HoleData>();
+    public List<HoleData> holesData = new List<HoleData>();
 }
 
 [System.Serializable]
-public class HoleData
+public class HoleLayerData
 {
     public ColorEnum color = ColorEnum.Blue;
     public bool isHidden = false;
 }
 
 [System.Serializable]
-public class HoleDataDefault
+public class HoleData
 {
-    public HoleData firstLayerHole = new HoleData();
-    public HoleData secondLayerHole = new HoleData();
-    public HoleData thirdLayerHole = new HoleData();
+    public List<HoleLayerData> holeLayersData = new List<HoleLayerData>();
 }
 
 [System.Serializable]

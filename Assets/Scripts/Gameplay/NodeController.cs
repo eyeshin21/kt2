@@ -20,16 +20,4 @@ public class NodeController : MonoBehaviour
             return _node;
         }
     }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

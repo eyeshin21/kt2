@@ -56,7 +56,7 @@ public class AnimatedButton : UIBehaviour, IPointerDownHandler, IPointerUpHandle
     private void OnClickAction()
     {
         m_OnClick.Invoke();
-        //SoundManager.instance.PlaySound("Button");
+        SoundManager.instance.PlaySound("Button");
         HapticFeedbackController.TriggerHaptics(MoreMountains.NiceVibrations.HapticTypes.LightImpact);
     }
 

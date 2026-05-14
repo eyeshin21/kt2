@@ -26,6 +26,25 @@ public class BoxManager : Singleton<BoxManager>
     public Transform boxParent;
     public List<Box> boxes = new List<Box>();
 
+    [Header("Tunnel")]
+    public GameObject tunnelPrefab;
+    public List<TunnelController> tunnels = new List<TunnelController>();
+    public TunnelController[,] tunnelGrid;
+
+    [Header("Pin")]
+    public GameObject pinPrefab;
+    public List<PinController> pins = new List<PinController>();
+
+    [Header("Cloth")]
+    public GameObject cloth2x2Prefab;
+    public GameObject cloth2x3Prefab;
+    public GameObject cloth3x2Prefab;
+    public List<ClothController> clothes = new List<ClothController>();
+
+    [Header("Lock Chain")]
+    public GameObject lockChainPrefab;
+    public List<LockChainController> lockChains = new List<LockChainController>();
+
     [Header("Cell")]
     public GameObject cellPrefab;
     public List<GameObject> cells;
@@ -35,11 +54,12 @@ public class BoxManager : Singleton<BoxManager>
     private float startX;
     private float startY;
 
-    public void Init(Vector2Int gridSize, List<GridSlotData> gridSlotsData, List<BoxData> boxesData)
+    public void Init(Vector2Int gridSize, List<GridSlotData> gridSlotsData, List<BoxData> boxesData, List<TunnelData> tunnelsData, List<PinData> pinsData, List<ClothData> clothsData, List<LockChainData> lockChainsData)
     {
         this.gridSize = gridSize;
 
         boxGrid = new Box[gridSize.x, gridSize.y];
+        tunnelGrid = new TunnelController[gridSize.x, gridSize.y];
         groundGrid = new bool[gridSize.x, gridSize.y];
         walkableGrid = new bool[gridSize.x, gridSize.y];
 
@@ -64,9 +84,99 @@ public class BoxManager : Singleton<BoxManager>
             boxGrid[data.coordinateX, data.coordinateY] = SpawnBox(data);
         }
 
+        for (int i = 0; i < tunnelsData.Count; i++)
+        {
+            TunnelData data = tunnelsData[i];
+
+            GameObject newTunnel = tunnelPrefab.Spawn(boxParent);
+            newTunnel.name = $"Tunnel_{data.coordinateX}_{data.coordinateY}";
+            newTunnel.transform.localPosition = GetWorldPos(data.coordinateX, data.coordinateY);
+
+            TunnelController tunnel = newTunnel.GetComponent<TunnelController>();
+            tunnel.Init(data);
+            tunnels.Add(tunnel);
+
+            for (int j = 0; j < data.boxesData.Count; j++)
+            {
+                BoxData boxData = data.boxesData[j];
+                boxData.coordinateX = data.coordinateX;
+                boxData.coordinateY = data.coordinateY;
+                Box box = SpawnBox(boxData);
+                box.gameObject.name = $"Shooter_{j} ({newTunnel.name})";
+                box.gameObject.SetActive(false);
+                tunnel.boxes.Add(box);
+            }
+
+            tunnelGrid[data.coordinateX, data.coordinateY] = tunnel;
+        }
+
+        for (int i = 0; i < pinsData.Count; i++)
+        {
+            PinData data = pinsData[i];
+            GameObject newPin = pinPrefab.Spawn(boxParent);
+            newPin.name = $"Pin_{data.coordinateX}_{data.coordinateY}";
+            newPin.transform.localPosition = GetWorldPos(data.coordinateX, data.coordinateY);
+
+            PinController pin = newPin.GetComponent<PinController>();
+            pin.Init(data);
+            pins.Add(pin);
+        }
+
+        for (int i = 0; i < clothsData.Count; i++)
+        {
+            ClothData data = clothsData[i];
+
+            GameObject newCloth;
+
+            switch (data.clothType)
+            {
+                case ClothType.TwoxTwo:
+                    newCloth = cloth2x2Prefab.Spawn(boxParent);
+                    break;
+                case ClothType.TwoxThree:
+                    newCloth = cloth2x3Prefab.Spawn(boxParent);
+                    break;
+                case ClothType.ThreexTwo:
+                    newCloth = cloth3x2Prefab.Spawn(boxParent);
+                    break;
+                default:
+                    newCloth = cloth2x2Prefab.Spawn(boxParent);
+                    break;
+            }
+
+            newCloth.name = $"Cloth_{data.coordinateX}_{data.coordinateY}";
+            newCloth.transform.localPosition = GetWorldPos(data.coordinateX, data.coordinateY);
+
+            ClothController cloth = newCloth.GetComponent<ClothController>();
+            cloth.Init(data);
+            clothes.Add(cloth);
+        }
+
+        for (int i = 0; i < lockChainsData.Count; i++)
+        {
+            LockChainData data = lockChainsData[i];
+
+            GameObject newLockChain = lockChainPrefab.Spawn(boxParent);
+            newLockChain.name = $"LockChain_{data.coordinateX}_{data.coordinateY}";
+            newLockChain.transform.localPosition = GetWorldPos(data.coordinateX, data.coordinateY);
+
+            LockChainController lockChain = newLockChain.GetComponent<LockChainController>();
+            lockChain.Init(data);
+            lockChains.Add(lockChain);
+        }
+
+        for (int i = 0; i < boxes.Count; i++)
+        {
+            boxes[i].CheckLink();
+        }
+
         SpawnCorner();
 
-        CheckActiveBox();
+        CheckTunnel();
+        CheckPin();
+        CheckCloth();
+        CheckLockChain();
+        //CheckActiveBox();
     }
 
     public Box SpawnBox(BoxData data)
@@ -754,38 +864,49 @@ public class BoxManager : Singleton<BoxManager>
         return newCorner;
     }
 
-    public void RemoveBox(Box boxToRemove)
+    public void RemoveBox(Box boxToRemove, bool checkTunnel = true, bool checkActive = true)
     {
         boxes.Remove(boxToRemove);
         boxGrid[boxToRemove.pos.x, boxToRemove.pos.y] = null;
 
-        for (int x = 0; x < gridSize.x; x++)
+        if (checkTunnel)
         {
-            for (int y = 0; y < gridSize.y; y++)
-            {
-                if (boxGrid[x, y] || !groundGrid[x, y])
-                {
-                    walkableGrid[x, y] = false;
-                }
-                else
-                {
-                    walkableGrid[x, y] = groundGrid[x, y];
-                }
-            }
+            CheckTunnel();
         }
 
-        Point source = new Point(boxToRemove.pos.x, boxToRemove.pos.y);
-        List<Point> points = BFS.SearchShooter(walkableGrid, source);
-
-        if (points.Count > 0)
+        if (boxGrid[boxToRemove.pos.x, boxToRemove.pos.y] == null)
         {
-            for (int i = 0; i < points.Count; i++)
+            for (int x = 0; x < gridSize.x; x++)
             {
-                Point point = points[i];
-                Box box = boxGrid[point.x, point.y];
-                if (box != null && !box.isActive)
+                for (int y = 0; y < gridSize.y; y++)
                 {
-                    box.Active2();
+                    if (boxGrid[x, y] || !groundGrid[x, y])
+                    {
+                        walkableGrid[x, y] = false;
+                    }
+                    else
+                    {
+                        walkableGrid[x, y] = groundGrid[x, y];
+                    }
+                }
+            }
+
+            if (checkActive)
+            {
+                Point source = new Point(boxToRemove.pos.x, boxToRemove.pos.y);
+                List<Point> points = BFS.SearchShooter(walkableGrid, source);
+
+                if (points.Count > 0)
+                {
+                    for (int i = 0; i < points.Count; i++)
+                    {
+                        Point point = points[i];
+                        Box box = boxGrid[point.x, point.y];
+                        if (box != null && !box.isActive)
+                        {
+                            box.Active2();
+                        }
+                    }
                 }
             }
         }
@@ -796,6 +917,38 @@ public class BoxManager : Singleton<BoxManager>
         for (int i = 0; i < boxes.Count; i++)
         {
             boxes[i].CheckActive();
+        }
+    }
+
+    public void CheckTunnel()
+    {
+        for (int i = 0; i < tunnels.Count; i++)
+        {
+            tunnels[i].CheckActiveNextBox();
+        }
+    }
+
+    public void CheckPin()
+    {
+        for (int i = 0; i < pins.Count; i++)
+        {
+            pins[i].CheckBox();
+        }
+    }
+
+    public void CheckCloth()
+    {
+        for (int i = 0; i < clothes.Count; i++)
+        {
+            clothes[i].CheckBox();
+        }
+    }
+
+    public void CheckLockChain()
+    {
+        for (int i = 0; i < lockChains.Count; i++)
+        {
+            lockChains[i].CheckBox();
         }
     }
 
@@ -895,5 +1048,29 @@ public class BoxManager : Singleton<BoxManager>
             boxes[i].Recycle();
         }
         boxes.Clear();
+
+        for (int i = 0; i < tunnels.Count; i++)
+        {
+            tunnels[i].Recycle();
+        }
+        tunnels.Clear();
+
+        for (int i = 0; i < pins.Count; i++)
+        {
+            pins[i].Recycle();
+        }
+        pins.Clear();
+
+        for (int i = 0; i < clothes.Count; i++)
+        {
+            clothes[i].Recycle();
+        }
+        clothes.Clear();
+
+        for (int i = 0; i < lockChains.Count; i++)
+        {
+            lockChains[i].Recycle();
+        }
+        lockChains.Clear();
     }
 }

@@ -25,10 +25,9 @@ public static class GameplayVariables
     public const string totalEarn = "totalEarn";
     public const string winLevel = "winLevel";
     public const string loseProgress = "loseProgress";
-    public const string amountUndo = "amountUndo";
-    public const string amountExtraSlot = "amountExtraSlot";
-    public const string amountSwap = "amountSwap";
-    public const string amountMagnet = "amountMagnet";
+    public const string amountBoosterAddSlot = "amountBoosterAddSlot";
+    public const string amountBoosterHandSelect = "amountBoosterHandSelect";
+    public const string amountBoosterMagnet = "amountBoosterMagnet";
     public const string playCount = "playCount";
     public const string loseCount = "loseCount";
 

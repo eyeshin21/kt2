@@ -10,7 +10,7 @@ public class GDHoleLayer : MonoBehaviour
 
     public GameObject objHidden;
 
-    public void Init(HoleData data)
+    public void Init(HoleLayerData data)
     {
         if (data != null)
         {

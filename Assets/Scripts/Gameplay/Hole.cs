@@ -10,11 +10,24 @@ public class Hole : MonoBehaviour
     public int realAmount = 0;
     public int currentFill = 0;
 
-    public void Init(HoleDataDefault holeDataDefault)
+    public Queue<HoleLayerData> queueHoleLayersData = new Queue<HoleLayerData>();
+
+    public void Init(HoleData holeData)
     {
-        holeLayers[0].Init(holeDataDefault.firstLayerHole);
-        holeLayers[1].Init(holeDataDefault.secondLayerHole);
-        holeLayers[2].Init(holeDataDefault.thirdLayerHole);
+        for (int i = 0; i < holeData.holeLayersData.Count; i++)
+        {
+            queueHoleLayersData.Enqueue(holeData.holeLayersData[i]);
+        }
+
+        for (int i = 0; i < holeLayers.Count; i++)
+        {
+            HoleLayerData holeLayerData = null;
+            if (queueHoleLayersData.Count > 0)
+            {
+                holeLayerData = queueHoleLayersData.Dequeue();
+            }
+            holeLayers[i].Init(holeLayerData);
+        }
 
         currentFill = 0;
     }
@@ -22,7 +35,7 @@ public class Hole : MonoBehaviour
     public void Fill(int index)
     {
         HoleFill holeFill = holeFills[index];
-        holeFill.Init(holeLayers[2].color);
+        holeFill.Init(holeLayers[0].color);
         holeFill.gameObject.SetActive(true);
         holeFill.Fill(() =>
         {
@@ -37,6 +50,7 @@ public class Hole : MonoBehaviour
         if (currentFill >= holeFills.Count)
         {
             Break();
+            GameplayController.Instance.CheckWin();
         }
     }
 
@@ -49,15 +63,53 @@ public class Hole : MonoBehaviour
         currentFill = 0;
         realAmount = 0;
 
-        holeLayers[2].ActiveNextColor(holeLayers[1].color);
-        holeLayers[1].ActiveNextColor(holeLayers[0].color);
-        holeLayers[0].ActiveNextColor(HoleManager.Instance.queueHole.color);
+        for (int i = 0; i < holeLayers.Count; i++)
+        {
+            HoleLayer holeLayer = holeLayers[i];
+            if (i == 0)
+            {
+                holeLayer.ActiveNextColor(holeLayers[i + 1].color, false);
+            }
+            if (i == holeLayers.Count - 1)
+            {
+                HoleLayerData holeLayerData = null;
+                if (queueHoleLayersData.Count > 0)
+                {
+                    holeLayerData = queueHoleLayersData.Dequeue();
+                }
 
-        HoleManager.Instance.ActiveNextColorQueueHole();
+                holeLayer.Init(holeLayerData);
+                if (holeLayerData != null && holeLayerData.color != ColorEnum.None)
+                {
+                    holeLayer.ActiveNextColor(holeLayerData.color, holeLayerData.isHidden);
+                }
+            }
+            else
+            {
+                holeLayer.ActiveNextColor(holeLayers[i + 1].color, holeLayers[i + 1].isHidden);
+            }
+        }
+
+        GameplayController.Instance.CheckLose();
     }
 
     public bool IsFull()
     {
         return realAmount >= holeFills.Count;
+    }
+
+    public void Recycle()
+    {
+        currentFill = 0;
+        realAmount = 0;
+
+        queueHoleLayersData.Clear();
+
+        for (int i = 0; i < holeFills.Count; i++)
+        {
+            holeFills[i].gameObject.SetActive(false);
+        }
+
+        gameObject.Recycle();
     }
 }

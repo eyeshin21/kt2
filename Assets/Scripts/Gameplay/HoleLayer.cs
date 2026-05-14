@@ -6,21 +6,25 @@ using UnityEngine;
 public class HoleLayer : MonoBehaviour
 {
     public ColorEnum color;
+    public bool isHidden;
     public float scaleFrom;
     public bool activeCap;
 
+    public GameObject objHidden;
     public MeshRenderer wallRenderer;
     public MeshRenderer insideRenderer;
     public MeshRenderer capRenderer;
 
-    public void Init(HoleData data)
+    public void Init(HoleLayerData data)
     {
         if (data != null)
         {
+            isHidden = data.isHidden;
             SetColor(data.color);
         }
         else
         {
+            isHidden = false;
             SetColor(ColorEnum.None);
         }
     }
@@ -28,9 +32,21 @@ public class HoleLayer : MonoBehaviour
     public void SetColor(ColorEnum color)
     {
         this.color = color;
+        objHidden.SetActive(isHidden);
 
-        var insideMat = MaterialCache.GetHoleInsideMat(color);
-        var mainMat = MaterialCache.GetHoleMainMat(color);
+        Material insideMat;
+        Material mainMat;
+
+        if (!isHidden)
+        {
+            insideMat = MaterialCache.GetHoleInsideMat(color);
+            mainMat = MaterialCache.GetHoleMainMat(color);
+        }
+        else
+        {
+            insideMat = MaterialCache.GetHoleInsideHiddenMat();
+            mainMat = MaterialCache.GetHoleMainHiddenMat();
+        }
 
         wallRenderer.sharedMaterial = mainMat;
         insideRenderer.sharedMaterial = insideMat;
@@ -46,9 +62,11 @@ public class HoleLayer : MonoBehaviour
         }
     }
 
-    public void ActiveNextColor(ColorEnum color)
+    public void ActiveNextColor(ColorEnum color, bool isHidden)
     {
         if (this.color == ColorEnum.None) return;
+
+        this.isHidden = isHidden;
 
         SetColor(color);
 

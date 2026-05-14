@@ -36,7 +36,6 @@ public static class EventVariables
     public const string PurchaseCoin = "PurchaseCoin";
 
     // Hook Screw
-    public const string AddSlot = "AddSlot";
     public const string OnShooterMoveOut = "OnShooterMoveOut";
     public const string UnlockShooter = "UnlockShooter";
     public const string CheckShutter = "CheckShutter";

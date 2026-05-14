@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 
 public static class MaterialCache
@@ -72,6 +73,17 @@ public static class MaterialCache
         return mat;
     }
 
+    static Material boxHiddenMat;
+    public static Material GetBoxHiddenMat()
+    {
+        if (boxHiddenMat == null)
+        {
+            boxHiddenMat = Resources.Load<Material>($"Materials/Box/Inactive/Hidden");
+        }
+
+        return boxHiddenMat;
+    }
+
     static Dictionary<int, Material> lockMats;
     public static Material GetLockMat(int lockCode)
     {
@@ -139,4 +151,27 @@ public static class MaterialCache
 
         return mat;
     }
+
+    static Material holeMainHiddenMat;
+    public static Material GetHoleMainHiddenMat()
+    {
+        if (holeMainHiddenMat == null)
+        {
+            holeMainHiddenMat = Resources.Load<Material>($"Materials/Hole/Main/Hidden");
+        }
+
+        return holeMainHiddenMat;
+    }
+
+    static Material holeInsideHiddenMat;
+    public static Material GetHoleInsideHiddenMat()
+    {
+        if (holeInsideHiddenMat == null)
+        {
+            holeInsideHiddenMat = Resources.Load<Material>($"Materials/Hole/Inside/Hidden");
+        }
+
+        return holeInsideHiddenMat;
+    }
+
 }

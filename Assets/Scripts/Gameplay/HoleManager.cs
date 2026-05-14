@@ -11,12 +11,9 @@ public class HoleManager : Singleton<HoleManager>
     public Transform holeParent;
     public List<Hole> holes = new List<Hole>();
 
-    Queue<HoleData> queueHoles = new Queue<HoleData>();
-    public HoleLayer queueHole;
-
-    public void Init(List<HoleDataDefault> holesDataDefault, List<HoleData> queueHolesData)
+    public void Init(List<HoleData> holesData)
     {
-        switch (holesDataDefault.Count)
+        switch (holesData.Count)
         {
             case 1:
                 {
@@ -26,7 +23,7 @@ public class HoleManager : Singleton<HoleManager>
                     obj.transform.localScale = Vector3.one;
 
                     Hole hole = obj.GetComponent<Hole>();
-                    hole.Init(holesDataDefault[0]);
+                    hole.Init(holesData[0]);
 
                     holes.Add(hole);
 
@@ -44,9 +41,9 @@ public class HoleManager : Singleton<HoleManager>
             case 2:
                 {
                     int nodeIndex = 0;
-                    for (int i = 0; i < holesDataDefault.Count; i++)
+                    for (int i = 0; i < holesData.Count; i++)
                     {
-                        float rotationY = i * (360f / holesDataDefault.Count);
+                        float rotationY = i * (360f / holesData.Count);
 
                         GameObject obj = holeHalfPrefab.Spawn(holeParent);
                         obj.transform.localPosition = Vector3.zero;
@@ -54,7 +51,7 @@ public class HoleManager : Singleton<HoleManager>
                         obj.transform.localScale = Vector3.one;
 
                         Hole hole = obj.GetComponent<Hole>();
-                        hole.Init(holesDataDefault[i]);
+                        hole.Init(holesData[i]);
 
                         holes.Add(hole);
 
@@ -74,9 +71,9 @@ public class HoleManager : Singleton<HoleManager>
             case 4:
                 {
                     int nodeIndex = 0;
-                    for (int i = 0; i < holesDataDefault.Count; i++)
+                    for (int i = 0; i < holesData.Count; i++)
                     {
-                        float rotationY = i * (360f / holesDataDefault.Count);
+                        float rotationY = i * (360f / holesData.Count);
 
                         GameObject obj = holeQuarterPrefab.Spawn(holeParent);
                         obj.transform.localPosition = Vector3.zero;
@@ -84,7 +81,7 @@ public class HoleManager : Singleton<HoleManager>
                         obj.transform.localScale = Vector3.one;
 
                         Hole hole = obj.GetComponent<Hole>();
-                        hole.Init(holesDataDefault[i]);
+                        hole.Init(holesData[i]);
 
                         holes.Add(hole);
 
@@ -102,24 +99,6 @@ public class HoleManager : Singleton<HoleManager>
                     break;
                 }
         }
-
-        for (int i = 0; i < queueHolesData.Count; i++)
-        {
-            queueHoles.Enqueue(queueHolesData[i]);
-        }
-
-        ActiveNextColorQueueHole();
-    }
-
-    public void ActiveNextColorQueueHole()
-    {
-        HoleData nextHoleData = null;
-        if (queueHoles.Count > 0)
-        {
-            nextHoleData = queueHoles.Dequeue();
-        }
-
-        queueHole.Init(nextHoleData);
     }
 
     public void OnTriggerSpline(SplineUser user, int nodeIndex)
@@ -131,7 +110,7 @@ public class HoleManager : Singleton<HoleManager>
                 case 1:
                     {
                         Hole hole = holes[0];
-                        if (!hole.IsFull() && hole.realAmount == nodeIndex && hole.holeLayers[2].color == ball.color)
+                        if (!hole.IsFull() && hole.realAmount == nodeIndex && hole.holeLayers[0].color == ball.color)
                         {
                             NodeController node = FunnelManager.Instance.nodes[nodeIndex];
                             ball.Fill(hole, node);
@@ -146,7 +125,7 @@ public class HoleManager : Singleton<HoleManager>
                         {
                             Hole hole = holes[i];
 
-                            if (!hole.IsFull() && hole.realAmount + indexTemp == nodeIndex && hole.holeLayers[2].color == ball.color)
+                            if (!hole.IsFull() && hole.realAmount + indexTemp == nodeIndex && hole.holeLayers[0].color == ball.color)
                             {
                                 NodeController node = FunnelManager.Instance.nodes[nodeIndex];
                                 ball.Fill(hole, node);
@@ -161,5 +140,37 @@ public class HoleManager : Singleton<HoleManager>
             }
 
         }
+    }
+
+    public bool IsEmpty()
+    {
+        for (int i = 0; i < holes.Count; i++)
+        {
+            Hole hole = holes[i];
+            if (hole.queueHoleLayersData.Count > 0)
+            {
+                return false;
+            }
+
+            for (int j = 0; j < hole.holeLayers.Count; j++)
+            {
+                HoleLayer holeLayer = hole.holeLayers[j];
+                if (holeLayer.color != ColorEnum.None)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public void Recycle()
+    {
+        for (int i = 0; i < holes.Count; i++)
+        {
+            holes[i].Recycle();
+        }
+        holes.Clear();
     }
 }
