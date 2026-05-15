@@ -17,6 +17,9 @@ public class FunnelManager : Singleton<FunnelManager>
     public TextMeshPro txtCapacity;
     public float moveTime = 0.3f;
     public float distanceBetweenBall = 1f;
+    float splineLength;
+    float minPercentGap;
+    double insertPercent;
 
     public GameObject ballPrefab;
     public List<Ball> balls = new List<Ball>();
@@ -24,14 +27,19 @@ public class FunnelManager : Singleton<FunnelManager>
     public Queue<ColorEnum> queueBalls = new Queue<ColorEnum>();
     public bool isAddingBall = false;
 
-    private void Update()
+    private void LateUpdate()
     {
-        if (balls.Count > 0)
+        if (balls.Count > 1)
         {
-            for (int i = 0; i < balls.Count; i++)
-            {
-                balls[i].CheckMove();
-            }
+            //ResetBallOrder();
+            //for (int i = 0; i < balls.Count; i++)
+            //{
+            //    balls[i].CheckMove();
+            //}
+
+            balls.Sort((o1, o2) => { return o1.splineFollower.GetPercent().CompareTo(o2.splineFollower.GetPercent()); });
+            HandleTraffic();
+            ResolveOverlap();
         }
     }
 
@@ -39,8 +47,13 @@ public class FunnelManager : Singleton<FunnelManager>
     {
         SetTextCapacity();
 
+        spline.RebuildImmediate();
         spline.triggerGroups = new TriggerGroup[0];
         AddTrigger(OnBallCrossStartLine, startPos.GetPercent(), name: "OnBallCrossStartLine");
+
+        splineLength = spline.CalculateLength();
+        minPercentGap = distanceBetweenBall / splineLength;
+        insertPercent = startPos.GetPercent();
     }
 
     public bool IsFull(out int totalFreeSlot)
@@ -86,10 +99,8 @@ public class FunnelManager : Singleton<FunnelManager>
     }
 
     Coroutine coroutineAddBall;
-    WaitForSeconds waitForAddBall = new WaitForSeconds(0.1f);
-    WaitForSeconds waitForDoneAddBall = new WaitForSeconds(0.2f);
-    WaitForSeconds waitForResetBallOrder = new WaitForSeconds(0.01f);
-    WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
+    WaitForSeconds waitForAddBall = new WaitForSeconds(0.05f);
+    WaitForSeconds waitForDoneAddBall = new WaitForSeconds(0.25f);
     bool isWaitingForDoneAddBall = false;
     IEnumerator IE_AddBall()
     {
@@ -99,14 +110,6 @@ public class FunnelManager : Singleton<FunnelManager>
             if (balls.Count < maxCapacity)
             {
                 isAddingBall = true;
-
-                double startPercent = spline.Travel(startPos.GetPercent(), distanceBetweenBall);
-
-                if (IsAnyBallCrossingTheStartLine(out Ball ballToWait))
-                {
-                    WaitUntil waitUntilBlockCrossedStartLine = new WaitUntil(() => ballToWait.splineFollower.GetPercent() > startPercent);
-                    yield return waitUntilBlockCrossedStartLine;
-                }
 
                 ColorEnum color = queueBalls.Dequeue();
 
@@ -118,26 +121,29 @@ public class FunnelManager : Singleton<FunnelManager>
                 Ball ball = obj.GetComponent<Ball>();
                 ball.Init(color);
 
-                SplineSample sample = spline.Evaluate(startPercent);
-                ball.transform.DOJump(sample.position, 0.25f, 1, moveTime).SetEase(Ease.Linear).OnComplete(() =>
+                SplineSample sample = spline.Evaluate(insertPercent);
+                ball.transform.DOJump(sample.position, 0.5f, 1, moveTime).SetEase(Ease.Linear).OnComplete(() =>
                 {
                     ball.splineFollower.spline = spline;
-                    ball.splineFollower.SetPercent(startPercent, false);
+                    ball.splineFollower.SetPercent(insertPercent);
                     ball.splineFollower.autoStartPosition = true;
-                    ball.splineFollower.RebuildImmediate();
                     ball.splineFollower.enabled = true;
-                    ball.StartMove();
+                    ball.splineFollower.RebuildImmediate();
 
                     balls.Add(ball);
+                    SetTextCapacity();
 
-                    Invoke(nameof(ResetBallOrder), 0.01f);
                     GameplayController.Instance.CheckLose();
                 });
 
             }
             else
             {
-                isAddingBall = false;
+                if (isAddingBall)
+                {
+                    yield return waitForDoneAddBall;
+                    isAddingBall = false;
+                }
             }
 
             yield return waitForAddBall;
@@ -145,33 +151,16 @@ public class FunnelManager : Singleton<FunnelManager>
 
         isWaitingForDoneAddBall = true;
         yield return waitForDoneAddBall;
-        yield return waitForResetBallOrder;
 
         isWaitingForDoneAddBall = false;
         isAddingBall = false;
         coroutineAddBall = null;
     }
 
-    public void StopMove()
-    {
-        for (int i = 0; i < balls.Count; i++)
-        {
-            balls[i].StopMove();
-        }
-
-        if (coroutineAddBall != null)
-        {
-            StopCoroutine(coroutineAddBall);
-            coroutineAddBall = null;
-        }
-
-        isAddingBall = true;
-    }
-
     public void RemoveBall(Ball ball)
     {
         balls.Remove(ball);
-        ResetBallOrder();
+        SetTextCapacity();
     }
 
     public bool IsAnyBallMatchAnyHole()
@@ -199,81 +188,120 @@ public class FunnelManager : Singleton<FunnelManager>
         return false;
     }
 
-    public bool IsAnyBallCrossingTheStartLine(out Ball ball)
-    {
-        for (int i = 0; i < balls.Count; i++)
-        {
-            double percent = balls[i].splineFollower.GetPercent();
-            double startPercent = spline.Travel(startPos.GetPercent(), distanceBetweenBall);
-
-            if (percent > startPos.GetPercent() && percent <= startPercent)
-            {
-                ball = balls[i];
-                return true;
-            }
-        }
-
-        ball = null;
-        return false;
-    }
-
-    public void ResetBallOrder()
-    {
-        if (balls.Count > 1)
-        {
-            balls.Sort((o1, o2) => { return o1.splineFollower.GetPercent().CompareTo(o2.splineFollower.GetPercent()); });
-
-            //List<Ball> cacheBalls = new List<Ball>(balls);
-            //List<Ball> ballsToInsert = new List<Ball>();
-            //for (int i = 0; i < cacheBalls.Count; i++)
-            //{
-            //    if (cacheBalls[i].splineFollower.GetPercent() < startPos.GetPercent())
-            //    {
-            //        ballsToInsert.Add(cacheBalls[i]);
-            //        balls.Remove(cacheBalls[i]);
-            //    }
-            //}
-
-            //if (ballsToInsert.Count > 0)
-            //{
-            //    balls.AddRange(ballsToInsert);
-            //}
-
-            for (int i = 0; i < balls.Count; i++)
-            {
-                if (i == balls.Count - 1)
-                {
-                    balls[i].ballForward = balls[0];
-                }
-                else
-                {
-                    balls[i].ballForward = balls[i + 1];
-                }
-            }
-        }
-        else if (balls.Count == 1)
-        {
-            balls[0].ballForward = null;
-        }
-
-        SetTextCapacity();
-    }
-
     public void OnBallCrossStartLine(SplineUser splineUser)
     {
         if (isAddingBall)
         {
             //Debug.Log("Cross Start Line");
 
-            Ball ball = splineUser.GetComponent<Ball>();
-            ball.StopMove();
-            ball.splineFollower.SetPercent(startPos.GetPercent(), false);
+            //Ball ball = splineUser.GetComponent<Ball>();
+            //ball.StopMove();
+            //ball.splineFollower.SetPercent(startPos.GetPercent(), false);
         }
     }
 
     public void SetTextCapacity()
     {
         txtCapacity.text = $"{balls.Count}/{maxCapacity}";
+    }
+
+    private void HandleTraffic()
+    {
+        int count = balls.Count;
+
+        foreach (Ball ball in balls)
+        {
+            ball.splineFollower.follow = true;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            SplineFollower current = balls[i].splineFollower;
+            SplineFollower front = balls[(i + 1) % count].splineFollower;
+
+            bool shouldStop = false;
+
+            if (isAddingBall)
+            {
+                double gapToInsert = DeltaLoopPercent(current.result.percent, insertPercent);
+
+                if (gapToInsert <= minPercentGap)
+                {
+                    shouldStop = true;
+
+                    double target = insertPercent - minPercentGap;
+
+                    target = NormalizePercent(target);
+
+                    current.SetPercent(target);
+                }
+            }
+
+            if (!front.follow)
+            {
+                double gapToFront =
+                    DeltaLoopPercent(current.result.percent, front.result.percent);
+
+                if (gapToFront <= minPercentGap)
+                {
+                    shouldStop = true;
+
+                    double target = front.result.percent - minPercentGap;
+
+                    target = NormalizePercent(target);
+
+                    current.SetPercent(target);
+                }
+            }
+
+            current.follow = !shouldStop;
+        }
+    }
+
+    private void ResolveOverlap()
+    {
+        int count = balls.Count;
+
+        for (int i = 0; i < count; i++)
+        {
+            SplineFollower current = balls[i].splineFollower;
+            SplineFollower next = balls[(i + 1) % count].splineFollower;
+
+            double gap = DeltaLoopPercent(current.result.percent, next.result.percent);
+
+            if (gap < minPercentGap)
+            {
+                double target = current.result.percent + minPercentGap;
+
+                target = NormalizePercent(target);
+
+                if (next.follow)
+                {
+                    next.SetPercent(target);
+                }
+            }
+        }
+    }
+
+    private double DeltaLoopPercent(double a, double b)
+    {
+        double delta = b - a;
+
+        if (delta < 0)
+            delta += 1.0;
+
+        return delta;
+    }
+
+    private double NormalizePercent(double percent)
+    {
+        while (percent < 0.0)
+            percent += 1.0;
+
+        while (percent > 1.0)
+            percent -= 1.0;
+
+        return percent;
     }
 
     public void AddTrigger(UnityEngine.Events.UnityAction<SplineUser> action, double position, SplineTrigger.Type type = SplineTrigger.Type.Forward, string name = "API Trigger")

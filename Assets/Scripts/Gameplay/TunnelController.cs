@@ -74,17 +74,24 @@ public class TunnelController : MonoBehaviour
                 BoxManager.Instance.boxGrid[spawnPos.x, spawnPos.y] = nextBox;
                 boxes.RemoveAt(0);
 
-                checkActiveNextBox = DOVirtual.DelayedCall(0.15f, () =>
-                {
-                    nextBox.gameObject.SetActive(true);
-                    nextBox.pos = spawnPos;
-                    nextBox.MoveToSpawnPos(true);
+                //checkActiveNextBox = DOVirtual.DelayedCall(0.15f, () =>
+                //{
+                //    nextBox.gameObject.SetActive(true);
+                //    nextBox.pos = spawnPos;
+                //    nextBox.MoveToSpawnPos(true);
 
-                    txtCount.gameObject.SetActive(boxes.Count > 0);
-                    txtCount.text = boxes.Count.ToString();
+                //    txtCount.gameObject.SetActive(boxes.Count > 0);
+                //    txtCount.text = boxes.Count.ToString();
 
-                    checkActiveNextBox = null;
-                }, false);
+                //    checkActiveNextBox = null;
+                //}, false);
+
+                nextBox.gameObject.SetActive(true);
+                nextBox.pos = spawnPos;
+                nextBox.MoveToSpawnPos(true);
+
+                txtCount.gameObject.SetActive(boxes.Count > 0);
+                txtCount.text = boxes.Count.ToString();
             }
         }
     }

@@ -33,6 +33,7 @@ public class HoleLayer : MonoBehaviour
     {
         this.color = color;
         objHidden.SetActive(isHidden);
+        objHidden.transform.eulerAngles = new Vector3(90f, 0f, 0f);
 
         Material insideMat;
         Material mainMat;
@@ -62,7 +63,7 @@ public class HoleLayer : MonoBehaviour
         }
     }
 
-    public void ActiveNextColor(ColorEnum color, bool isHidden)
+    public void ActiveNextColor(ColorEnum color, bool isHidden, System.Action onComplete = null)
     {
         if (this.color == ColorEnum.None) return;
 
@@ -71,6 +72,15 @@ public class HoleLayer : MonoBehaviour
         SetColor(color);
 
         transform.localScale = Vector3.one * scaleFrom;
-        transform.DOScale(1f, 0.25f).SetEase(Ease.Linear);
+        transform.DOScale(1f, 0.25f).SetEase(Ease.Linear).OnComplete(() =>
+        {
+            onComplete?.Invoke();
+        });
+    }
+
+    public void Recycle()
+    {
+        transform.DOKill();
+        transform.localScale = Vector3.one;
     }
 }

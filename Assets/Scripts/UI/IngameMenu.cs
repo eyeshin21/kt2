@@ -1,7 +1,9 @@
+using DG.Tweening;
 using TigerForge;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
-using TMPro;
+using UnityEngine.UI;
 
 public enum eBooster
 {
@@ -15,9 +17,13 @@ public class IngameMenu : UIMenu
     public TutorialUI tutorialUI;
 
     [SerializeField] TextMeshProUGUI levelTxt;
+    [SerializeField] Slider progressLevel;
+    [SerializeField] TextMeshProUGUI txtProgressLevel;
     [SerializeField] GameObject booster;
     [SerializeField] Transform trsfBoard;
     [SerializeField] Transform trsfBottom;
+    [SerializeField] Transform trsfProgressLevel;
+    public Transform trsfAddProgressPoint;
 
     [Header("Booster Hand Select")]
     [SerializeField] AnimatedButton boosterHandSelectBtn;
@@ -56,6 +62,7 @@ public class IngameMenu : UIMenu
         EventManager.StartListening(EventVariables.LoadLevel, LoadLevel);
         EventManager.StartListening(EventVariables.AddItem, AddItem);
         EventManager.StartListening(EventVariables.Revive, Revive);
+        EventManager.StartListening(EventVariables.SetProgressLevel, SetProgressLevel);
 
         levelUnlockBoosterHandSelectTxt.text = string.Format("Lv {0}", GameConfig.LEVEL_UNLOCK_BOOSTER_HAND_SELECT);
         levelUnlockBoosterAddSlotTxt.text = string.Format("Lv {0}", GameConfig.LEVEL_UNLOCK_BOOSTER_ADD_SLOT);
@@ -86,6 +93,50 @@ public class IngameMenu : UIMenu
         //}
 
         UserConfig.Instance.amountPlay++;
+    }
+
+    public void PunchScaleProgress()
+    {
+        trsfProgressLevel.DOKill(true);
+        trsfProgressLevel.DOPunchScale(Vector3.one * 0.3f, 0.25f).SetEase(Ease.Linear);
+    }
+
+    public void InitProgressLevel()
+    {
+        collectedBalls = 0;
+        txtProgressLevel.text = $"{collectedBalls}/{HoleManager.Instance.totalBalls}";
+        progressLevel.value = 0;
+    }
+
+    Tween tweenProgressLevel;
+    int collectedBalls = 0;
+    private void SetProgressLevel()
+    {
+        if (tweenProgressLevel != null)
+        {
+            tweenProgressLevel.Kill();
+            tweenProgressLevel = null;
+        }
+        progressLevel.DOKill();
+
+        int oldValue = collectedBalls;
+
+        collectedBalls += HoleManager.Instance.ballStep;
+        int totalBalls = HoleManager.Instance.totalBalls;
+
+        tweenProgressLevel = DOVirtual.Int(oldValue, collectedBalls, 0.5f, result =>
+        {
+            txtProgressLevel.text = $"{result}/{totalBalls}";
+        }).OnComplete(() =>
+        {
+            txtProgressLevel.text = $"{collectedBalls}/{totalBalls}";
+            tweenProgressLevel = null;
+        });
+
+        progressLevel.DOValue(collectedBalls / (float)totalBalls, 0.5f).OnComplete(() =>
+        {
+            progressLevel.value = collectedBalls / (float)totalBalls;
+        });
     }
 
     void Revive()

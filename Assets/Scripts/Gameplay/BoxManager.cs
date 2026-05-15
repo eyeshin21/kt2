@@ -204,19 +204,16 @@ public class BoxManager : Singleton<BoxManager>
         cells.Add(newCell);
     }
 
-    public void SpawnGridPiece(int x, int y)
+    public GameObject SpawnGridPiece(int x, int y)
     {
         GameObject newGridPiece = gridPiecePrefab.Spawn(gridPieceParent);
         newGridPiece.name = $"Piece_{x}_{y}";
         newGridPiece.transform.localPosition = GetWorldPos(x, y);
         newGridPiece.transform.localScale = Vector3.one * cellSize;
 
-        if (y == -1 && x >= 0 && x < gridSize.x)
-        {
-            newGridPiece.transform.localPosition += Vector3.back * (cellSize * 0.25f);
-        }
-
         gridPieces.Add(newGridPiece);
+
+        return newGridPiece;
     }
 
     public void SpawnCorner()
@@ -242,7 +239,17 @@ public class BoxManager : Singleton<BoxManager>
 
                 if (!center)
                 {
-                    SpawnGridPiece(x, y);
+                    GameObject gridPiece = SpawnGridPiece(x, y);
+
+                    if (y == -1 && x >= 0 && x < gridSize.x)
+                    {
+                        gridPiece.transform.localPosition += Vector3.back * (cellSize * 0.25f);
+                    }
+
+                    if (x >= 0 && x < gridSize.x && y == 0)
+                    {
+                        SpawnGridPiece(x, y - 1);
+                    }
 
                     if (left)
                     {
@@ -864,6 +871,8 @@ public class BoxManager : Singleton<BoxManager>
         return newCorner;
     }
 
+    int[] dx = new int[] { -1, 1, 0, 0 };
+    int[] dy = new int[] { 0, 0, -1, 1 };
     public void RemoveBox(Box boxToRemove, bool checkTunnel = true, bool checkActive = true)
     {
         boxes.Remove(boxToRemove);
@@ -887,6 +896,21 @@ public class BoxManager : Singleton<BoxManager>
                     else
                     {
                         walkableGrid[x, y] = groundGrid[x, y];
+                    }
+                }
+            }
+
+            for (int i = 0; i < dx.Length; i++)
+            {
+                int x = boxToRemove.pos.x + dx[i];
+                int y = boxToRemove.pos.y + dy[i];
+
+                if (x >= 0 && x < gridSize.x && y >= 0 &&  y < gridSize.y)
+                {
+                    Box box = boxGrid[x, y];
+                    if (box != null)
+                    {
+                        box.ShowHidden();
                     }
                 }
             }

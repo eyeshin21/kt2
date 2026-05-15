@@ -8,19 +8,19 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Green
-  m_Shader: {fileID: -6465566751694194690, guid: df5bb027d94a6c44bb32b3c31ec1303f, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: edd7abf643fa4bc4e8561d4c280c97cf, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - TCP2_MOBILE
-  - TCP2_OUTLINE_CONST_SIZE
   - TCP2_RAMP_BANDS
   - TCP2_REFLECTIONS_FRESNEL
   - TCP2_SHADOW_LIGHT_COLOR
   - TCP2_SPECULAR_STYLIZED
-  - TCP2_UV_NORMALS_FULL
   m_InvalidKeywords:
   - TCP2_DISABLE_WRAPPED_LIGHT
+  - TCP2_OUTLINE_CONST_SIZE
+  - TCP2_UV_NORMALS_FULL
   m_LightmapFlags: 0
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
@@ -100,7 +100,7 @@ Material:
     - _OutlinePixelSizeType: 1
     - _OutlineTextureLOD: 5
     - _OutlineTextureType: 0
-    - _OutlineWidth: 4
+    - _OutlineWidth: 1.6
     - _RampBands: 1
     - _RampBandsSmoothing: 1
     - _RampOffset: 0
@@ -131,7 +131,7 @@ Material:
     - _UseMobileMode: 1
     - _UseNormalMap: 0
     - _UseOcclusion: 0
-    - _UseOutline: 1
+    - _UseOutline: 0
     - _UseReflections: 0
     - _UseRim: 0
     - _UseRimLightMask: 0
@@ -151,4 +151,3 @@ Material:
     - _SColor: {r: 0.033641946, g: 0.5943396, b: 0, a: 1}
     - _SpecularColor: {r: 0.25, g: 0.25, b: 0.25, a: 1}
   m_BuildTextureStacks: []
-  m_AllowLocking: 1

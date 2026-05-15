@@ -11,12 +11,18 @@ public class HoleManager : Singleton<HoleManager>
     public Transform holeParent;
     public List<Hole> holes = new List<Hole>();
 
+    [HideInInspector] public int totalBalls = 0;
+    [HideInInspector] public int ballStep = 3;
+
     public void Init(List<HoleData> holesData)
     {
+        totalBalls = 0;
         switch (holesData.Count)
         {
             case 1:
                 {
+                    ballStep = 12;
+
                     GameObject obj = holeFullPrefab.Spawn(holeParent);
                     obj.transform.localPosition = Vector3.zero;
                     obj.transform.localEulerAngles = Vector3.zero;
@@ -40,6 +46,8 @@ public class HoleManager : Singleton<HoleManager>
                 }
             case 2:
                 {
+                    ballStep = 6;
+
                     int nodeIndex = 0;
                     for (int i = 0; i < holesData.Count; i++)
                     {
@@ -70,6 +78,8 @@ public class HoleManager : Singleton<HoleManager>
                 }
             case 4:
                 {
+                    ballStep = 3;
+
                     int nodeIndex = 0;
                     for (int i = 0; i < holesData.Count; i++)
                     {
@@ -99,6 +109,8 @@ public class HoleManager : Singleton<HoleManager>
                     break;
                 }
         }
+
+        UIManager.Instance.ingameMenu.InitProgressLevel();
     }
 
     public void OnTriggerSpline(SplineUser user, int nodeIndex)
@@ -110,7 +122,7 @@ public class HoleManager : Singleton<HoleManager>
                 case 1:
                     {
                         Hole hole = holes[0];
-                        if (!hole.IsFull() && hole.realAmount == nodeIndex && hole.holeLayers[0].color == ball.color)
+                        if (!hole.IsFull() && hole.realFillAmount == nodeIndex && hole.holeLayers[0].color == ball.color)
                         {
                             NodeController node = FunnelManager.Instance.nodes[nodeIndex];
                             ball.Fill(hole, node);
@@ -125,7 +137,7 @@ public class HoleManager : Singleton<HoleManager>
                         {
                             Hole hole = holes[i];
 
-                            if (!hole.IsFull() && hole.realAmount + indexTemp == nodeIndex && hole.holeLayers[0].color == ball.color)
+                            if (!hole.IsFull() && hole.realFillAmount + indexTemp == nodeIndex && hole.holeLayers[0].color == ball.color)
                             {
                                 NodeController node = FunnelManager.Instance.nodes[nodeIndex];
                                 ball.Fill(hole, node);

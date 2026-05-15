@@ -21,6 +21,7 @@ public class UIHole : UI
     public GameObject holeLayerDataUIPrefab;
     public List<HoleLayerDataUI> holeLayersDataUI;
     public Transform buttonAddHoleLayerData;
+    public Transform buttonAddHoleLayerDataToTop;
 
     [Header("Grid")]
     [SerializeField] ScrollRect scrollRect;
@@ -173,6 +174,7 @@ public class UIHole : UI
         }
 
         buttonAddHoleLayerData.SetAsLastSibling();
+        buttonAddHoleLayerDataToTop.SetAsFirstSibling();
     }
 
     public void RemoveHoleLayerDataUI(int index)
@@ -208,6 +210,34 @@ public class UIHole : UI
         holeLayerDataUI.SetUp(holeLayerData);
 
         buttonAddHoleLayerData.SetAsLastSibling();
+        buttonAddHoleLayerDataToTop.SetAsFirstSibling();
+
+        UpdateTotalColors();
+    }
+
+    public void OnClickButtonAddHoleLayerDataToTop()
+    {
+        if (indexHoleData == -1) return;
+
+        GameObject obj = holeLayerDataUIPrefab.Spawn(scrollHoleLayerData.content);
+        obj.transform.localScale = Vector3.one;
+        obj.transform.SetAsFirstSibling();
+
+        HoleLayerDataUI holeLayerDataUI = obj.GetComponent<HoleLayerDataUI>();
+        holeLayersDataUI.Insert(0, holeLayerDataUI);
+
+        HoleLayerData holeLayerData = new HoleLayerData();
+        LevelDesign.Instance.levelData.holesData[indexHoleData].holeLayersData.Insert(0, holeLayerData);
+
+        for (int i = 0; i < holeLayersDataUI.Count; i++)
+        {
+            holeLayersDataUI[i].Init(i);
+        }
+
+        holeLayerDataUI.SetUp(holeLayerData);
+
+        buttonAddHoleLayerData.SetAsLastSibling();
+        buttonAddHoleLayerDataToTop.SetAsFirstSibling();
 
         UpdateTotalColors();
     }

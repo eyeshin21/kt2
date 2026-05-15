@@ -18,6 +18,7 @@ public class Box : MonoBehaviour
     public Transform scale;
     public MeshRenderer boxRenderer;
     public MeshRenderer capRenderer;
+    public GameObject objOutline;
     public Collider tapColl;
 
     [Header("Balls")]
@@ -162,14 +163,9 @@ public class Box : MonoBehaviour
             boxMat = MaterialCache.GetBoxHiddenMat();
         }
 
-        Material[] boxMats = boxRenderer.sharedMaterials;
-        for (int i = 0; i < boxMats.Length; i++)
-        {
-            boxMats[i] = boxMat;
-        }
-
-        boxRenderer.sharedMaterials = boxMats;
+        boxRenderer.sharedMaterial = boxMat;
         capRenderer.sharedMaterial = boxMat;
+        objOutline.SetActive(false);
 
         Material ballMat = MaterialCache.GetBallMat(color);
         for (int i = 0; i < ballsRenderer.Length; i++)
@@ -177,16 +173,6 @@ public class Box : MonoBehaviour
             ballsRenderer[i].sharedMaterial = ballMat;
             ballsRenderer[i].gameObject.SetActive(true);
         }
-    }
-
-    public void SetColor()
-    {
-
-    }
-
-    public void SetColorActive()
-    {
-
     }
 
     public void OnShooterMoveOut()
@@ -374,9 +360,38 @@ public class Box : MonoBehaviour
         }
     }
 
+    public void ShowHidden()
+    {
+        if (isHidden)
+        {
+            isHidden = false;
+            objHidden.SetActive(false);
+
+            GameObject obj = GameManager.Instance.InstantiatePrefab("VFX/VFX_Show");
+            obj.transform.parent = transform;
+            obj.transform.localPosition = Vector3.up * 0.5f;
+            obj.transform.localScale = Vector3.one;
+
+            if (isActive && !hasIce && !isLock && !hasCrate && !hasPin && !hasCloth && !isLockChain)
+            {
+                Material boxMat = MaterialCache.GetBoxActiveMat(color);
+                boxRenderer.sharedMaterial = boxMat;
+                capRenderer.sharedMaterial = boxMat;
+                objOutline.SetActive(true);
+            }
+            else
+            {
+                Material boxMat = MaterialCache.GetBoxInactiveMat(color);
+                boxRenderer.sharedMaterial = boxMat;
+                capRenderer.sharedMaterial = boxMat;
+                objOutline.SetActive(false);
+            }
+        }
+    }
+
     public void OnTap()
     {
-        if (isActive && !hasIce && !isLock && !hasCrate && !hasPin && !hasCloth && !isLockChain)
+        if (isActive && !isHidden && !hasIce && !isLock && !hasCrate && !hasPin && !hasCloth && !isLockChain)
         {
             if (hasShutter && !isShutterOpen) return;
 
@@ -388,7 +403,7 @@ public class Box : MonoBehaviour
                 }
                 else
                 {
-                    NoMove(true);
+                    Shake();
                 }
             }
             else
@@ -408,14 +423,14 @@ public class Box : MonoBehaviour
                 }
                 else
                 {
-                    NoMove(true);
-                    linkedBox.NoMove(true);
+                    Shake();
+                    linkedBox.Shake();
                 }
             }
         }
         else
         {
-            NoMove(false);
+            Shake();
         }
     }
 
@@ -461,12 +476,9 @@ public class Box : MonoBehaviour
         DisableShutter();
 
         Material boxMat = MaterialCache.GetBoxInactiveMat(color);
-        Material[] boxMats = boxRenderer.sharedMaterials;
-        for (int i = 0; i < boxMats.Length; i++)
-        {
-            boxMats[i] = boxMat;
-        }
-        boxRenderer.sharedMaterials = boxMats;
+        boxRenderer.sharedMaterial = boxMat;
+        capRenderer.sharedMaterial = boxMat;
+        objOutline.SetActive(false);
 
         tapColl.enabled = false;
 
@@ -482,7 +494,7 @@ public class Box : MonoBehaviour
     }
 
     WaitForSeconds waitForSpawnBall = new WaitForSeconds(0.05f);
-    WaitForSeconds waitForDisappear = new WaitForSeconds(0.417f);
+    WaitForSeconds waitForDisappear = new WaitForSeconds(0.3f);
     IEnumerator IE_Move()
     {
         Material boxMat = MaterialCache.GetBoxInactiveMat(color);
@@ -494,26 +506,14 @@ public class Box : MonoBehaviour
             yield return waitForSpawnBall;
         }
 
-        BoxManager.Instance.RemoveBox(this);
-        EventManager.EmitEvent(EventVariables.CheckPin);
-
-        anim.SetTrigger("EmptyOut");
+        transform.DOScale(0f, 0.3f).SetEase(Ease.InBack);
 
         yield return waitForDisappear;
 
-        Recycle();
-    }
+        BoxManager.Instance.RemoveBox(this);
+        EventManager.EmitEvent(EventVariables.CheckPin);
 
-    public void NoMove(bool isMaxBall)
-    {
-        if (isMaxBall)
-        {
-            anim.SetTrigger("CantClickMaxBalls");
-        }
-        else
-        {
-            anim.SetTrigger("CantClick");
-        }
+        Recycle();
     }
 
     public bool CanMoveOut()
@@ -548,15 +548,6 @@ public class Box : MonoBehaviour
         return false;
     }
 
-    public void Active()
-    {
-        isActive = true;
-        anim.SetTrigger("Activate");
-
-        Material boxMat = MaterialCache.GetBoxActiveSelectableMat(color);
-        boxRenderer.sharedMaterial = boxMat;
-    }
-
     public void Active2()
     {
         isActive = true;
@@ -585,12 +576,18 @@ public class Box : MonoBehaviour
         {
 
         }
+        else if (isHidden)
+        {
+
+        }
         else
         {
-            anim.SetTrigger("Activate");
+            anim.SetTrigger("Active");
 
-            Material boxMat = MaterialCache.GetBoxActiveSelectableMat(color);
+            Material boxMat = MaterialCache.GetBoxActiveMat(color);
             boxRenderer.sharedMaterial = boxMat;
+            capRenderer.sharedMaterial = boxMat;
+            objOutline.SetActive(true);
 
             if (isHidden)
             {
@@ -651,23 +648,18 @@ public class Box : MonoBehaviour
                 {
 
                 }
+                else if (isHidden)
+                {
+
+                }
                 else
                 {
-                    anim.SetTrigger("Activate");
+                    anim.SetTrigger("Active");
 
-                    Material boxMat = MaterialCache.GetBoxActiveSelectableMat(color);
+                    Material boxMat = MaterialCache.GetBoxActiveMat(color);
                     boxRenderer.sharedMaterial = boxMat;
-
-                    if (isHidden)
-                    {
-                        isHidden = false;
-                        objHidden.SetActive(false);
-
-                        GameObject obj = GameManager.Instance.InstantiatePrefab("VFX/VFX_Show");
-                        obj.transform.parent = transform;
-                        obj.transform.localPosition = Vector3.back * 0.5f;
-                        obj.transform.localScale = Vector3.one;
-                    }
+                    capRenderer.sharedMaterial = boxMat;
+                    objOutline.SetActive(true);
 
                     //if (isLinked && objLink.activeSelf)
                     //{
@@ -680,12 +672,17 @@ public class Box : MonoBehaviour
         {
             if (!isActive)
             {
-
+                objOutline.SetActive(false);
             }
             else
             {
                 isActive = false;
-                anim.SetTrigger("DeActivate");
+                anim.SetTrigger("DeActive");
+
+                Material boxMat = MaterialCache.GetBoxInactiveMat(color);
+                boxRenderer.sharedMaterial = boxMat;
+                capRenderer.sharedMaterial = boxMat;
+                objOutline.SetActive(false);
             }
         }
     }
@@ -699,7 +696,7 @@ public class Box : MonoBehaviour
     public void Shake()
     {
         shake.DOKill(true);
-        shake.DOPunchRotation(Vector3.forward * 20f, 0.3f).SetEase(Ease.Linear);
+        shake.DOPunchRotation(Vector3.up * 20f, 0.3f).SetEase(Ease.Linear);
     }
 
     public void Recycle()

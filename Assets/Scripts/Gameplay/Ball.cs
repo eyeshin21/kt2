@@ -29,66 +29,7 @@ public class Ball : MonoBehaviour
         meshRenderer.sharedMaterial = ballMat;
     }
 
-    public void StartMove()
-    {
-        splineFollower.follow = true;
-    }
-
-    public void PauseMove()
-    {
-        splineFollower.follow = false;
-    }
-
-    public bool forceStop = false;
-    public void StopMove()
-    {
-        forceStop = true;
-        splineFollower.follow = false;
-    }
-
-    public void CheckMove()
-    {
-        if (!forceStop && ballForward != null)
-        {
-            if (!ballForward.splineFollower.follow)
-            {
-                double currentPercent = splineFollower.GetPercent();
-                double checkPercent = ballForward.splineFollower.GetPercent();
-                float distance;
-                if (currentPercent < checkPercent)
-                {
-                    distance = FunnelManager.Instance.spline.CalculateLength(currentPercent, checkPercent);
-                }
-                else
-                {
-                    distance = FunnelManager.Instance.spline.CalculateLength(currentPercent, 1);
-                    distance += FunnelManager.Instance.spline.CalculateLength(0, checkPercent);
-                }
-
-                if (distance <= FunnelManager.Instance.distanceBetweenBall)
-                {
-                    if (splineFollower.follow)
-                    {
-                        PauseMove();
-                    }
-                }
-            }
-            else
-            {
-                if (!splineFollower.follow)
-                {
-                    StartMove();
-                }
-            }
-        }
-
-        if (forceStop && !FunnelManager.Instance.isAddingBall)
-        {
-            forceStop = false;
-            StartMove();
-        }
-    }
-
+    Tween tweenSpeedUp;
     Hole targetHole = null;
     int fillIndex;
     public void Fill(Hole hole, NodeController nodeController)
@@ -96,9 +37,9 @@ public class Ball : MonoBehaviour
         FunnelManager.Instance.RemoveBall(this);
 
         targetHole = hole;
-        fillIndex = hole.realAmount;
+        fillIndex = hole.realFillAmount;
 
-        hole.realAmount++;
+        hole.PreFill(this);
         Node.Connection[] connections = nodeController.Node.GetConnections();
 
         splineFollower.wrapMode = SplineFollower.Wrap.Default;
@@ -107,10 +48,13 @@ public class Ball : MonoBehaviour
         double startpercent = tracer.ClipPercent(connections[1].spline.GetPointPercent(connections[1].pointIndex));
         tracer.SetPercent(startpercent);
 
-        DOVirtual.Float(cacheSpeed, cacheSpeed + 5f, 1f, (result) =>
+        tweenSpeedUp = DOVirtual.Float(cacheSpeed, cacheSpeed + 5f, 1f, (result) =>
         {
             splineFollower.followSpeed = result;
-        }).SetEase(Ease.InQuad);
+        }).SetEase(Ease.InQuad).OnComplete(() =>
+        {
+            tweenSpeedUp = null;
+        });
 
         canCheckEnd = true;
     }
@@ -120,7 +64,7 @@ public class Ball : MonoBehaviour
     {
         if (canCheckEnd && targetHole != null)
         {
-            targetHole.Fill(fillIndex);
+            targetHole.Fill(fillIndex, this);
 
             splineFollower.follow = false;
             splineFollower.enabled = false;
@@ -136,6 +80,12 @@ public class Ball : MonoBehaviour
     {
         transform.DOKill();
 
+        if (tweenSpeedUp != null)
+        {
+            tweenSpeedUp.Kill();
+            tweenSpeedUp = null;
+        }
+
         targetHole = null;
         fillIndex = -1;
 
@@ -143,10 +93,8 @@ public class Ball : MonoBehaviour
         splineFollower.wrapMode = SplineFollower.Wrap.Loop;
         splineFollower.followSpeed = cacheSpeed;
         splineFollower.spline = null;
-        splineFollower.enabled = false;
         splineFollower.RebuildImmediate();
-
-        forceStop = false;
+        splineFollower.enabled = false;
 
         ballForward = null;
 

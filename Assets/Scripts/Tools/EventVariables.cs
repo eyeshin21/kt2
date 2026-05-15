@@ -41,4 +41,5 @@ public static class EventVariables
     public const string CheckShutter = "CheckShutter";
     public const string CheckPin = "CheckPin";
     public const string CheckCloth = "CheckCloth";
+    public const string SetProgressLevel = "SetProgressLevel";
 }
